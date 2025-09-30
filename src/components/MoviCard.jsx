@@ -20,6 +20,8 @@ const movie15 = {Title : "3 Idiots", Year : "2009"}
 const movie16 = {Title : "Ghajini", Year : "2008"}
 const movie17 = {Title : "Chakdey India", Year : "2007"}
 const movie18 = {Title : "Dhoom 2", Year : "2006"}
+const movie19 = {Title : "Dhoom", Year : "2004"}
+const movie20 = {Title : "Koi Mil Gaya", Year : "2003"}
     return(
     <>
 
@@ -42,6 +44,8 @@ const movie18 = {Title : "Dhoom 2", Year : "2006"}
 <Movies movie={movie16} />
 <Movies movie={movie17} />
 <Movies movie={movie18} />
+<Movies movie={movie19} />
+<Movies movie={movie20} />
 
     </>
     )
