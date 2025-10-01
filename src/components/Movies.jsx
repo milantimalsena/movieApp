@@ -10,7 +10,7 @@ function Movies({ movie }) {
             <img src={movie.Poster} alt={movie.Title} />
             <div className="movie-overlay">
                 <button className="favorite-btn" onClick={() => addToFavorites(movie)}>
-                    ❤️
+                 ♥  
                 </button>
 
             </div>
