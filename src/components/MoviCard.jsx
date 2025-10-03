@@ -9,6 +9,7 @@ const movies = [
     {Title : "Tiger", Year : "2022"},
     {Title : "War", Year : "2021"},
     {Title : "Dhoom", Year : "2020"}
+    {Title : "Don", Year : "2019"}
 
 ];
 
@@ -33,6 +34,7 @@ const handleSearch = (event) => {
 
 {movies.map((movie, index) => (
     <Movies key={index} movie={movie} />
+
 ))}
 
 </div>
