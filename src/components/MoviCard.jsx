@@ -8,8 +8,9 @@ const movies = [
     {Title : "Pathaan", Year : "2023"},
     {Title : "Tiger", Year : "2022"},
     {Title : "War", Year : "2021"},
-    {Title : "Dhoom", Year : "2020"}
+    {Title : "Dhoom", Year : "2020"},
     {Title : "Don", Year : "2019"}
+
 
 ];
 

@@ -1,32 +1,17 @@
 
+// This component is deprecated - use MovieCard instead
+import MovieCard from './MovieCard'
+
 function Movies({ movie }) {
-    function addToFavorites(movie) {
-        alert(`Added ${movie.Title} to favorites!`);
+    // Convert old format to new format if needed
+    const movieData = {
+        imdbID: movie.imdbID || `temp-${movie.Title}-${movie.Year}`,
+        Title: movie.Title,
+        Year: movie.Year,
+        Poster: movie.Poster || 'N/A',
+        Type: movie.Type || 'movie'
     }
-    return(
-        <>
-        <div className="movie-card">
-        <div className="movie-poster">
-            <img src={movie.Poster} alt={movie.Title} />
-            <div className="movie-overlay">
-                <button className="favorite-btn" onClick={() => addToFavorites(movie)}>
-                 ♥  
-                </button>
-
-            </div>
-
-        </div>
-
-        <div className="movie-info">
-            <h3 className="movie-title">{movie.Title}</h3>
-            <p className="movie-year">{movie.Year}</p>
-
-
-
-        </div>
-      </div>
-        </>
-
-    )
+    
+    return <MovieCard movie={movieData} />
 }
 export default Movies
