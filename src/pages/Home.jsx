@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import SearchBar from '../components/SearchBar'
 import MovieGrid from '../components/MovieGrid'
+import ApiNotification from '../components/ApiNotification'
 import { mockMoviesDatabase, getMoviesByCategory, getRandomMovies } from '../data/moviesData'
+import net20Api from '../services/net20Api'
 
-const API_KEY = '9b6f5d2a' // You should replace this with your own OMDB API key
+const API_KEY = '9b6f5d2a' // OMDB API key as fallback
 const API_URL = 'https://www.omdbapi.com'
 
 function Home() {
@@ -12,20 +14,36 @@ function Home() {
   const [error, setError] = useState(null)
   const [hasSearched, setHasSearched] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
+  const [notification, setNotification] = useState(null)
 
   useEffect(() => {
     // Load diverse movies on initial load with fallback to mock data
     loadInitialMovies()
   }, [])
 
-  const loadInitialMovies = () => {
+  const loadInitialMovies = async () => {
     setLoading(true)
     setError(null)
     
-    // Use mock database as primary source for better experience
-    const randomMovies = getRandomMovies(20)
-    setMovies(randomMovies)
-    setLoading(false)
+    try {
+      // Try Net20 API first for trending movies
+      console.log('Fetching movies from Net20 API...')
+      const net20Response = await net20Api.getTrendingMovies(1, 20)
+      
+      if (net20Response.movies && net20Response.movies.length > 0) {
+        console.log(`Loaded ${net20Response.movies.length} movies from Net20 API`)
+        setMovies(net20Response.movies)
+      } else {
+        throw new Error('No movies from Net20 API')
+      }
+    } catch (error) {
+      console.log('Net20 API failed, using local database:', error.message)
+      // Fallback to local mock database
+      const randomMovies = getRandomMovies(20)
+      setMovies(randomMovies)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const searchMovies = async (query) => {
@@ -34,14 +52,32 @@ function Home() {
     setHasSearched(true)
 
     try {
-      // First try API search
+      // First try Net20 API search
+      console.log(`Searching for "${query}" using Net20 API...`)
+      const net20Response = await net20Api.searchMovies(query, 1, 20)
+      
+      if (net20Response.movies && net20Response.movies.length > 0) {
+        console.log(`Found ${net20Response.movies.length} movies from Net20 API`)
+        setMovies(net20Response.movies)
+        setError(null)
+        return
+      } else if (net20Response.error) {
+        console.warn('Net20 API error:', net20Response.error)
+        // Don't set error yet, we have fallbacks
+      }
+      
+      // Fallback to OMDB API
+      console.log('Trying OMDB API as fallback...')
       const response = await fetch(`${API_URL}/?s=${encodeURIComponent(query)}&apikey=${API_KEY}`)
       const data = await response.json()
 
       if (data.Response === 'True') {
+        console.log(`Found ${data.Search.length} movies from OMDB API`)
         setMovies(data.Search)
+        setError('Using OMDB data - Net20 API temporarily unavailable')
       } else {
         // Fallback to local search in mock database
+        console.log('Searching in local database...')
         const localResults = mockMoviesDatabase.filter(movie =>
           movie.Title.toLowerCase().includes(query.toLowerCase()) ||
           movie.Genre.toLowerCase().includes(query.toLowerCase()) ||
@@ -50,6 +86,7 @@ function Home() {
         )
         
         if (localResults.length > 0) {
+          console.log(`Found ${localResults.length} movies in local database`)
           setMovies(localResults)
         } else {
           setError('No movies found')
@@ -57,6 +94,7 @@ function Home() {
         }
       }
     } catch (err) {
+      console.log('All APIs failed, searching local database:', err.message)
       // Fallback to local search on network error
       const localResults = mockMoviesDatabase.filter(movie =>
         movie.Title.toLowerCase().includes(query.toLowerCase()) ||
@@ -76,20 +114,45 @@ function Home() {
     }
   }
 
-  const handleCategoryChange = (category) => {
+  const handleCategoryChange = async (category) => {
     setActiveCategory(category)
     setHasSearched(false)
     setLoading(true)
     setError(null)
 
-    setTimeout(() => {
+    try {
+      if (category === 'all') {
+        // Load trending movies for "all" category
+        console.log('Loading trending movies from Net20 API...')
+        const net20Response = await net20Api.getTrendingMovies(1, 20)
+        
+        if (net20Response.movies && net20Response.movies.length > 0) {
+          setMovies(net20Response.movies)
+        } else {
+          throw new Error('No trending movies from Net20 API')
+        }
+      } else {
+        // Try to get movies by category from Net20 API
+        console.log(`Loading ${category} movies from Net20 API...`)
+        const net20Response = await net20Api.getMoviesByCategory(category, 1, 20)
+        
+        if (net20Response.movies && net20Response.movies.length > 0) {
+          setMovies(net20Response.movies)
+        } else {
+          throw new Error(`No ${category} movies from Net20 API`)
+        }
+      }
+    } catch (error) {
+      console.log(`Net20 API failed for category ${category}, using local database:`, error.message)
+      // Fallback to local database
       if (category === 'all') {
         setMovies(getRandomMovies(20))
       } else {
         setMovies(getMoviesByCategory(category))
       }
+    } finally {
       setLoading(false)
-    }, 500) // Small delay for smooth transition
+    }
   }
 
   return (

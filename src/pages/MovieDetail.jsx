@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { FavoritesContext } from '../App'
+import net20Api from '../services/net20Api'
 
 const API_KEY = '9b6f5d2a'
 const API_URL = 'https://www.omdbapi.com'
@@ -25,10 +26,23 @@ function MovieDetail() {
     setError(null)
 
     try {
+      // First try Net20 API
+      console.log(`Fetching movie details for ID ${id} from Net20 API...`)
+      const net20Movie = await net20Api.getMovieDetails(id)
+      
+      if (net20Movie && !net20Movie.error) {
+        console.log('Movie details loaded from Net20 API')
+        setMovie(net20Movie)
+        return
+      }
+      
+      // Fallback to OMDB API
+      console.log('Trying OMDB API as fallback...')
       const response = await fetch(`${API_URL}/?i=${id}&plot=full&apikey=${API_KEY}`)
       const data = await response.json()
 
       if (data.Response === 'True') {
+        console.log('Movie details loaded from OMDB API')
         setMovie(data)
       } else {
         setError(data.Error || 'Movie not found')

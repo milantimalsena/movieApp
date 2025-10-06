@@ -1,3 +1,5 @@
+import ApiStatus from './ApiStatus'
+
 function Footer() {
   return (
     <footer className="footer">
@@ -12,6 +14,7 @@ function Footer() {
               <a href="#"><i className="fab fa-instagram"></i></a>
               <a href="#"><i className="fab fa-youtube"></i></a>
             </div>
+            <ApiStatus />
           </div>
           
           <div className="footer-section">
