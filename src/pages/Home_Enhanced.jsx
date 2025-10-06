@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import SearchBar from '../components/SearchBar'
 import MovieGrid from '../components/MovieGrid'
 import { mockMoviesDatabase, getMoviesByCategory, getRandomMovies } from '../data/moviesData'
-import { MovieAPIService } from '../services/legalMovieAPIs'
+import MovieAPIService from '../services/legalMovieAPIs'
 
 // Initialize the legal movie API service
 const movieAPI = new MovieAPIService()
@@ -95,77 +95,99 @@ function Home() {
     }
   }
 
-  const handleCategoryChange = (category) => {
+  const handleCategoryChange = async (category) => {
     setActiveCategory(category)
     setHasSearched(false)
     setLoading(true)
     setError(null)
 
-    setTimeout(() => {
+    try {
+      if (category === 'all') {
+        // Load popular movies from TMDB
+        const tmdbMovies = await movieAPI.getPopularMovies()
+        if (tmdbMovies && tmdbMovies.length > 0) {
+          setMovies(tmdbMovies)
+          setApiSource('tmdb')
+        } else {
+          setMovies(getRandomMovies(20))
+          setApiSource('mock')
+        }
+      } else if (category === 'trending') {
+        // Load trending movies from TMDB
+        const trendingMovies = await movieAPI.getTrendingMovies()
+        if (trendingMovies && trendingMovies.length > 0) {
+          setMovies(trendingMovies)
+          setApiSource('tmdb')
+        } else {
+          setMovies(getMoviesByCategory('hollywood'))
+          setApiSource('mock')
+        }
+      } else if (category === 'bollywood') {
+        // Search for Bollywood movies
+        const bollywoodResults = await movieAPI.searchMoviesTMDB('bollywood hindi')
+        if (bollywoodResults && bollywoodResults.length > 0) {
+          setMovies(bollywoodResults)
+          setApiSource('tmdb')
+        } else {
+          setMovies(getMoviesByCategory('bollywood'))
+          setApiSource('mock')
+        }
+      } else {
+        // Fallback to mock data for other categories
+        setMovies(getMoviesByCategory(category))
+        setApiSource('mock')
+      }
+    } catch (error) {
+      console.error('Category change error:', error)
+      // Fallback to mock data
       if (category === 'all') {
         setMovies(getRandomMovies(20))
       } else {
         setMovies(getMoviesByCategory(category))
       }
+      setApiSource('mock')
+    } finally {
       setLoading(false)
-    }, 500) // Small delay for smooth transition
+    }
+  }
+
+  const getDataSourceBadge = () => {
+    const badges = {
+      tmdb: { text: 'TMDB', color: '#01b4e4', title: 'The Movie Database' },
+      omdb: { text: 'OMDB', color: '#f5c518', title: 'Open Movie Database' },
+      mock: { text: 'LOCAL', color: '#6b7280', title: 'Local Database' }
+    }
+    
+    const badge = badges[apiSource]
+    return (
+      <span 
+        className="data-source-badge"
+        style={{ 
+          background: badge.color, 
+          color: 'white',
+          padding: '0.25rem 0.5rem',
+          borderRadius: '0.25rem',
+          fontSize: '0.75rem',
+          fontWeight: '600',
+          marginLeft: '1rem'
+        }}
+        title={badge.title}
+      >
+        {badge.text}
+      </span>
+    )
   }
 
   return (
     <div className="home">
       <SearchBar onSearch={searchMovies} loading={loading} />
       
-      {/* API Status Banner */}
-      {apiSource === 'mock' && (
-        <div className="api-banner">
-          <div className="container">
-            <div className="banner-content">
-              <i className="fas fa-info-circle"></i>
-              <div className="banner-text">
-                <h4>Upgrade to TMDB Integration</h4>
-                <p>
-                  Currently showing sample movies. Get your free TMDB API key from{' '}
-                  <a 
-                    href="https://www.themoviedb.org/settings/api" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="api-link"
-                  >
-                    themoviedb.org/settings/api
-                  </a>
-                  {' '}and add it to <code>src/services/legalMovieAPIs.js</code> for real movie data!
-                </p>
-              </div>
-              <div className="api-source-indicator">
-                <span className="source-badge mock">Using Sample Data</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {apiSource === 'tmdb' && (
-        <div className="api-banner success">
-          <div className="container">
-            <div className="banner-content">
-              <i className="fas fa-check-circle"></i>
-              <div className="banner-text">
-                <h4>TMDB Integration Active</h4>
-                <p>Now showing real movie data from The Movie Database!</p>
-              </div>
-              <div className="api-source-indicator">
-                <span className="source-badge tmdb">TMDB API</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
       <div className="content-section">
         <div className="container">
           <div className="section-header">
             <h2>
               {hasSearched ? 'Search Results' : `${getCategoryTitle(activeCategory)} Movies`}
+              {getDataSourceBadge()}
             </h2>
             {hasSearched && (
               <button 
@@ -187,8 +209,15 @@ function Home() {
                 className={`category-btn ${activeCategory === 'all' ? 'active' : ''}`}
                 onClick={() => handleCategoryChange('all')}
               >
-                <i className="fas fa-globe"></i>
-                All Movies
+                <i className="fas fa-fire"></i>
+                Popular
+              </button>
+              <button 
+                className={`category-btn ${activeCategory === 'trending' ? 'active' : ''}`}
+                onClick={() => handleCategoryChange('trending')}
+              >
+                <i className="fas fa-trending-up"></i>
+                Trending
               </button>
               <button 
                 className={`category-btn ${activeCategory === 'hollywood' ? 'active' : ''}`}
@@ -220,6 +249,34 @@ function Home() {
               </button>
             </div>
           )}
+
+          {/* API Status Information */}
+          <div className="api-status-info" style={{ 
+            marginBottom: '2rem',
+            padding: '1rem',
+            background: 'rgba(26, 26, 26, 0.8)',
+            borderRadius: '0.5rem',
+            border: '1px solid #333',
+            fontSize: '0.875rem',
+            color: '#b3b3b3'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <i className="fas fa-info-circle" style={{ color: '#14b8a6' }}></i>
+              <strong>Data Source Information</strong>
+            </div>
+            {apiSource === 'tmdb' && (
+              <p>🎬 Loading high-quality movie data from The Movie Database (TMDB) - Legal & Professional</p>
+            )}
+            {apiSource === 'omdb' && (
+              <p>🎯 Using Open Movie Database (OMDB) - Reliable movie information</p>
+            )}
+            {apiSource === 'mock' && (
+              <p>📚 Using local movie database - Curated collection with diverse content</p>
+            )}
+            <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: '0.8' }}>
+              💡 For better experience, get a free TMDB API key and replace it in the legalMovieAPIs.js file
+            </p>
+          </div>
           
           <MovieGrid 
             movies={movies} 
@@ -234,11 +291,12 @@ function Home() {
 
 const getCategoryTitle = (category) => {
   switch(category) {
+    case 'trending': return 'Trending'
     case 'hollywood': return 'Hollywood'
     case 'bollywood': return 'Bollywood'
     case 'south-indian': return 'South Indian'
     case 'nepali': return 'Nepali'
-    default: return 'Featured'
+    default: return 'Popular'
   }
 }
 
